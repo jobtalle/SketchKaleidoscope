@@ -17,13 +17,13 @@ export class ShaderKaleidoscope extends Shader {
         uniform mediump vec2 slice;
         uniform mediump float scale;
         uniform mediump vec2 shift;
+        uniform mediump float noiseOffset;
         uniform lowp vec3 low;
         uniform lowp vec3 high;
         uniform lowp vec3 highEdge;
         
         #define HEX vec2(1.7320508, 1)
         #define MAX_MIRRORS 12
-        #define NOISE_OFFSET 3.
         #define NOISE_BOOST .5
         #define RAMP 160.
         #define EDGE_SHADE .22
@@ -108,7 +108,7 @@ export class ShaderKaleidoscope extends Shader {
             mediump float radius = length(screenCoord) / length(size.xy) * 2.;
             mediump float fadeout = 1. - radius * radius * radius * radius;
             mediump float dampen = 1. - 2. * dist * dist;
-            mediump vec2 noiseOffset = centroid * scale + (gl_FragCoord.xy / size) * NOISE_OFFSET;
+            mediump vec2 noiseOffset = centroid * scale + (gl_FragCoord.xy / size) * noiseOffset;
             lowp float noise = cubicNoise(rotation * (vec3(noiseOffset, 0.) + seed)) - dist * NOISE_BOOST;
             
             if (noise > slice.x && noise < slice.x + slice.y) {
@@ -140,6 +140,7 @@ export class ShaderKaleidoscope extends Shader {
         this.uHighEdge = this.uniformLocation("highEdge");
         this.uScale = this.uniformLocation("scale");
         this.uShift = this.uniformLocation("shift");
+        this.uNoiseOffset = this.uniformLocation("noiseOffset");
     }
 
     /**
@@ -155,6 +156,7 @@ export class ShaderKaleidoscope extends Shader {
      * @param {Vector} highEdge The light color at the edge
      * @param {number} x X shift
      * @param {number} y Y shift
+     * @param {number} noiseOffset The noise drift with screen coordinates
      */
     configure(
         diameter,
@@ -167,7 +169,8 @@ export class ShaderKaleidoscope extends Shader {
         high,
         highEdge,
         x,
-        y) {
+        y,
+        noiseOffset) {
         this.gl.uniform1f(this.uDiameter, diameter);
         this.gl.uniformMatrix3fv(this.uTransform, false, [
             Math.cos(angle), Math.sin(angle), 0,
@@ -181,6 +184,7 @@ export class ShaderKaleidoscope extends Shader {
         this.gl.uniform3f(this.uHigh, high.x, high.y, high.z);
         this.gl.uniform3f(this.uHighEdge, highEdge.x, highEdge.y, highEdge.z);
         this.gl.uniform2f(this.uShift, x, y);
+        this.gl.uniform1f(this.uNoiseOffset, noiseOffset);
     }
 
     /**
