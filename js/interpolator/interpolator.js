@@ -7,8 +7,8 @@ export class Interpolator {
     constructor(random, phaseTime) {
         this.random = random;
         this.phaseTime = phaseTime;
-        this.time = 0;
         this.timeTarget = phaseTime.sample(random.float);
+        this.time = this.timeTarget;
     }
 
     /**

@@ -14,12 +14,18 @@ export class ShaderKaleidoscope extends Shader {
         uniform mediump vec2 size;
         uniform mediump vec3 seed;
         uniform mediump float diameter;
-        uniform lowp vec4 low;
-        uniform lowp vec4 high;
-        uniform lowp int axes;
+        uniform mediump vec2 slice;
+        uniform mediump float scale;
+        uniform lowp vec3 low;
+        uniform lowp vec3 high;
         
         #define HEX vec2(1.7320508, 1)
         #define MAX_MIRRORS 12
+        #define NOISE_OFFSET 2.5
+        #define NOISE_BOOST .5
+        #define RAMP 160.
+        #define EDGE_SHADE .22
+        #define AXES 6
         
         highp float random(highp vec3 x) {
             return fract(sin(x.x + x.y * 57.0 + x.z * 113.0) * 43758.5453);
@@ -73,12 +79,6 @@ export class ShaderKaleidoscope extends Shader {
             return vector - 2.0 * normal * magnitude;
         }
         
-        mediump float hex(mediump vec2 p) {
-            p = abs(p);
-
-            return max(dot(p, HEX * .5), p.y);
-        }
-        
         mediump vec2 getCentroid(mediump vec2 p) {
             mediump vec4 hC = floor(vec4(p, p - vec2(1, .5)) / HEX.xyxy) + .5;
             mediump vec4 h = vec4(p - hC.xy * HEX, p - (hC.zw + .5) * HEX);
@@ -87,28 +87,35 @@ export class ShaderKaleidoscope extends Shader {
         }
         
         void main() {
-            mediump vec2 centroid = getCentroid((transform * vec3(gl_FragCoord.xy - size * .5, 1.)).xy / diameter);
+            mediump vec2 screenCoord = gl_FragCoord.xy - size * .5;            
+            mediump vec2 centroid = getCentroid((transform * vec3(screenCoord, 1.)).xy / diameter);
             
-            for (int axis = 0; axis < MAX_MIRRORS; ++axis) {
-                mediump float angle = 3.141593 * (float(axis) / float(axes));
+            for (int axis = 0; axis < AXES; ++axis) {
+                mediump float angle = 3.141593 * (float(axis) / float(AXES));
                 mediump vec2 normal = vec2(cos(angle), sin(angle));
                 
                 centroid = mirror(centroid, normal);
-               
-                if (axis == axes)
-                    break;
             }
                 
             mediump float dist = length(centroid);
+            mediump mat3 rotation = mat3(
+                0.788675134594813, -0.211324865405187, -0.577350269189626,
+                -0.211324865405187, 0.788675134594813, -0.577350269189626,
+                0.577350269189626, 0.577350269189626, 0.577350269189626);
             
-            lowp float noise = cubicNoise(vec3(centroid * 5., 0.) + seed) - dist * .5;
+            mediump float radius = length(screenCoord) / length(size.xy) * 2.;
+            mediump float fadeout = 1. - radius * radius * radius * radius;
+            mediump float dampen = 1. - 2. * dist * dist;
+            mediump vec2 noiseOffset = centroid * scale + (gl_FragCoord.xy / size) * NOISE_OFFSET;
+            lowp float noise = cubicNoise(rotation * (vec3(noiseOffset, 0.) + seed)) - dist * NOISE_BOOST;
             
-            if (noise < 0.5 && noise > 0.3)
-                gl_FragColor = low;
+            if (noise > slice.x && noise < slice.x + slice.y) {
+                mediump float interpolation = min(1., min(noise - slice.x, slice.x + slice.y - noise) * RAMP);
+                
+                gl_FragColor = vec4(mix(low * dampen, high * sqrt(dampen), interpolation) * fadeout, 1);
+            }
             else
-                gl_FragColor = high;
-
-            gl_FragColor.rgb *= 1. - 2. * dist * dist;
+                gl_FragColor = vec4(low * dampen * fadeout, 1);
         }
         `;
 
@@ -125,25 +132,43 @@ export class ShaderKaleidoscope extends Shader {
         this.uSize = this.uniformLocation("size");
         this.uSeed = this.uniformLocation("seed");
         this.uDiameter = this.uniformLocation("diameter");
+        this.uSlice = this.uniformLocation("slice");
         this.uLow = this.uniformLocation("low");
         this.uHigh = this.uniformLocation("high");
-        this.uAxes = this.uniformLocation("axes");
+        this.uScale = this.uniformLocation("scale");
     }
 
     /**
      * Configure the next frame
      * @param {number} diameter The hexagon diameter
      * @param {number} angle The camera angle
+     * @param {number} threshold The noise threshold
+     * @param {number} bandwidth The noise bandwidth
+     * @param {Vector} seed The noise seed
+     * @param {number} scale The noise scale
+     * @param {Vector} low The dark color
+     * @param {Vector} high The light color
      */
     configure(
         diameter,
-        angle) {
+        angle,
+        threshold,
+        bandwidth,
+        seed,
+        scale,
+        low,
+        high) {
         this.gl.uniform1f(this.uDiameter, diameter);
         this.gl.uniformMatrix3fv(this.uTransform, false, [
             Math.cos(angle), Math.sin(angle), 0,
             -Math.sin(angle), Math.cos(angle), 0,
             0, 0, 1
         ]);
+        this.gl.uniform2f(this.uSlice, threshold, bandwidth);
+        this.gl.uniform3f(this.uSeed, seed.x, seed.y, seed.z);
+        this.gl.uniform1f(this.uScale, scale);
+        this.gl.uniform3f(this.uLow, low.x, low.y, low.z);
+        this.gl.uniform3f(this.uHigh, high.x, high.y, high.z);
     }
 
     /**
@@ -157,24 +182,5 @@ export class ShaderKaleidoscope extends Shader {
         this.gl.enableVertexAttribArray(this.aPosition);
         this.gl.vertexAttribPointer(this.aPosition, 2, this.gl.FLOAT, false, 8, 0);
         this.gl.uniform2f(this.uSize, width, height);
-        this.gl.uniform3f(this.uSeed,
-            Math.random() * 50 - 25,
-            Math.random() * 50 - 25,
-            Math.random() * 50 - 25);
-        this.gl.uniform4f(this.uLow,
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            1);
-        this.gl.uniform4f(this.uHigh,
-            Math.random(),
-            Math.random(),
-            Math.random(),
-            1);
-
-        const axisCounts = [1, 2, 3, 4, 6, 12];
-
-        // this.gl.uniform1i(this.uAxes, 3);
-        this.gl.uniform1i(this.uAxes, axisCounts[Math.floor(Math.random() * axisCounts.length)]);
     }
 }
