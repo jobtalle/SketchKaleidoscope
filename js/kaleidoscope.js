@@ -24,6 +24,7 @@ export class Kaleidoscope {
         this.shader = new ShaderKaleidoscope(this.gl);
         this.seed = new Vector();
         this.high = new Vector();
+        this.high2 = new Vector();
         this.low = new Vector();
 
         this.diameter = new InterpolatorFloat(random, new Bounds(4, 8), new Bounds(80, 420));
@@ -32,7 +33,7 @@ export class Kaleidoscope {
         this.bandwidth = new InterpolatorFloat(random, new Bounds(4, 5), new Bounds(.15, .35), true, true);
         this.seedRadius = new InterpolatorFloat(random, new Bounds(20, 30), new Bounds(-256, 256), true, false, 3);
         this.seedAngle = new InterpolatorFloat(random, new Bounds(20, 30), new Bounds(0, Math.PI), false, false, .08);
-        this.scale = new InterpolatorFloat(random, new Bounds(4, 10), new Bounds(2, 24), true);
+        this.scale = new InterpolatorFloat(random, new Bounds(4, 10), new Bounds(2, 20), true);
         this.hueHigh = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
         this.hueLow = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
 
@@ -110,7 +111,8 @@ export class Kaleidoscope {
         this.seed.y = Math.sin(this.seedAngle.value) * this.seedRadius.value;
 
         this.makeHSV(this.low, this.hueLow.value, .8, .4);
-        this.makeHSV(this.high, this.hueHigh.value, .6, .8);
+        this.makeHSV(this.high2, this.hueLow.value, .6, .4);
+        this.makeHSV(this.high, this.hueHigh.value, .5, 1);
 
         this.shader.configure(
             this.diameter.value,
@@ -120,7 +122,8 @@ export class Kaleidoscope {
             this.seed,
             this.scale.value,
             this.low,
-            this.high
+            this.high,
+            this.high2
         );
 
         this.quad.draw();

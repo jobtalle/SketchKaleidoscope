@@ -18,10 +18,11 @@ export class ShaderKaleidoscope extends Shader {
         uniform mediump float scale;
         uniform lowp vec3 low;
         uniform lowp vec3 high;
+        uniform lowp vec3 highEdge;
         
         #define HEX vec2(1.7320508, 1)
         #define MAX_MIRRORS 12
-        #define NOISE_OFFSET 2.5
+        #define NOISE_OFFSET 3.
         #define NOISE_BOOST .5
         #define RAMP 160.
         #define EDGE_SHADE .22
@@ -112,7 +113,7 @@ export class ShaderKaleidoscope extends Shader {
             if (noise > slice.x && noise < slice.x + slice.y) {
                 mediump float interpolation = min(1., min(noise - slice.x, slice.x + slice.y - noise) * RAMP);
                 
-                gl_FragColor = vec4(mix(low * dampen, high * sqrt(dampen), interpolation) * fadeout, 1);
+                gl_FragColor = vec4(mix(low * dampen * fadeout, mix(high, highEdge, radius) * sqrt(dampen), interpolation), 1);
             }
             else
                 gl_FragColor = vec4(low * dampen * fadeout, 1);
@@ -135,6 +136,7 @@ export class ShaderKaleidoscope extends Shader {
         this.uSlice = this.uniformLocation("slice");
         this.uLow = this.uniformLocation("low");
         this.uHigh = this.uniformLocation("high");
+        this.uHighEdge = this.uniformLocation("highEdge");
         this.uScale = this.uniformLocation("scale");
     }
 
@@ -148,6 +150,7 @@ export class ShaderKaleidoscope extends Shader {
      * @param {number} scale The noise scale
      * @param {Vector} low The dark color
      * @param {Vector} high The light color
+     * @param {Vector} highEdge The light color at the edge
      */
     configure(
         diameter,
@@ -157,7 +160,8 @@ export class ShaderKaleidoscope extends Shader {
         seed,
         scale,
         low,
-        high) {
+        high,
+        highEdge) {
         this.gl.uniform1f(this.uDiameter, diameter);
         this.gl.uniformMatrix3fv(this.uTransform, false, [
             Math.cos(angle), Math.sin(angle), 0,
@@ -169,6 +173,7 @@ export class ShaderKaleidoscope extends Shader {
         this.gl.uniform1f(this.uScale, scale);
         this.gl.uniform3f(this.uLow, low.x, low.y, low.z);
         this.gl.uniform3f(this.uHigh, high.x, high.y, high.z);
+        this.gl.uniform3f(this.uHighEdge, highEdge.x, highEdge.y, highEdge.z);
     }
 
     /**
