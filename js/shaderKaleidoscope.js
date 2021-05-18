@@ -163,6 +163,9 @@ export class ShaderKaleidoscope extends Shader {
             Math.random(),
             Math.random(),
             1);
-        this.gl.uniform1i(this.uAxes, 3 * (1 + Math.floor(Math.random() * 2)));
+
+        const axisCounts = [1, 2, 3, 4, 6, 12];
+
+        this.gl.uniform1i(this.uAxes, axisCounts[Math.floor(Math.random() * axisCounts.length)]);
     }
 }
