@@ -10,6 +10,7 @@ export class ShaderKaleidoscope extends Shader {
         `;
 
     static FRAGMENT = `#version 100
+        uniform mediump mat3 transform;
         uniform mediump vec2 size;
         uniform mediump vec3 seed;
         uniform mediump float diameter;
@@ -18,6 +19,7 @@ export class ShaderKaleidoscope extends Shader {
         uniform lowp int axes;
         
         #define HEX vec2(1.7320508, 1)
+        #define MAX_MIRRORS 12
         
         highp float random(highp vec3 x) {
             return fract(sin(x.x + x.y * 57.0 + x.z * 113.0) * 43758.5453);
@@ -77,32 +79,29 @@ export class ShaderKaleidoscope extends Shader {
             return max(dot(p, HEX * .5), p.y);
         }
         
-        mediump vec4 getHex(mediump vec2 p)
-        {
+        mediump vec2 getCentroid(mediump vec2 p) {
             mediump vec4 hC = floor(vec4(p, p - vec2(1, .5)) / HEX.xyxy) + .5;
             mediump vec4 h = vec4(p - hC.xy * HEX, p - (hC.zw + .5) * HEX);
 
-            return dot(h.xy, h.xy) < dot(h.zw, h.zw) 
-                ? vec4(h.xy, hC.xy) 
-                : vec4(h.zw, hC.zw + .5);
+            return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? h.xy : vec2(h.z, -h.w);
         }
         
         void main() {
-            mediump vec2 position = getHex((gl_FragCoord.xy - size * .5) / diameter).xy;
+            mediump vec2 centroid = getCentroid((transform * vec3(gl_FragCoord.xy - size * .5, 1.)).xy / diameter);
             
-            for (int axis = 0; axis < 10; ++axis) {
-                mediump float angle = 3.141593 * float(axis) / float(axes);
+            for (int axis = 0; axis < MAX_MIRRORS; ++axis) {
+                mediump float angle = 3.141593 * (float(axis) / float(axes));
                 mediump vec2 normal = vec2(cos(angle), sin(angle));
                 
-                position = mirror(position, normal);
+                centroid = mirror(centroid, normal);
                
                 if (axis == axes)
                     break;
             }
                 
-            mediump float dist = length(position);
+            mediump float dist = length(centroid);
             
-            lowp float noise = cubicNoise(vec3(position * 5., 0.) + seed) - dist * .5;
+            lowp float noise = cubicNoise(vec3(centroid * 5., 0.) + seed) - dist * .5;
             
             if (noise < 0.5 && noise > 0.3)
                 gl_FragColor = low;
@@ -122,6 +121,7 @@ export class ShaderKaleidoscope extends Shader {
 
         this.aPosition = this.attributeLocation("position");
 
+        this.uTransform = this.uniformLocation("transform");
         this.uSize = this.uniformLocation("size");
         this.uSeed = this.uniformLocation("seed");
         this.uDiameter = this.uniformLocation("diameter");
@@ -132,9 +132,18 @@ export class ShaderKaleidoscope extends Shader {
 
     /**
      * Configure the next frame
+     * @param {number} diameter The hexagon diameter
+     * @param {number} angle The camera angle
      */
-    configure() {
-
+    configure(
+        diameter,
+        angle) {
+        this.gl.uniform1f(this.uDiameter, diameter);
+        this.gl.uniformMatrix3fv(this.uTransform, false, [
+            Math.cos(angle), Math.sin(angle), 0,
+            -Math.sin(angle), Math.cos(angle), 0,
+            0, 0, 1
+        ]);
     }
 
     /**
@@ -152,7 +161,6 @@ export class ShaderKaleidoscope extends Shader {
             Math.random() * 50 - 25,
             Math.random() * 50 - 25,
             Math.random() * 50 - 25);
-        this.gl.uniform1f(this.uDiameter, 64 + 128 * Math.random());
         this.gl.uniform4f(this.uLow,
             Math.random(),
             Math.random(),
@@ -166,6 +174,7 @@ export class ShaderKaleidoscope extends Shader {
 
         const axisCounts = [1, 2, 3, 4, 6, 12];
 
+        // this.gl.uniform1i(this.uAxes, 3);
         this.gl.uniform1i(this.uAxes, axisCounts[Math.floor(Math.random() * axisCounts.length)]);
     }
 }
