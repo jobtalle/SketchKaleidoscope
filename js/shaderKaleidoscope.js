@@ -109,7 +109,7 @@ export class ShaderKaleidoscope extends Shader {
             else
                 gl_FragColor = high;
 
-            gl_FragColor.rgb *= 1. - dist;
+            gl_FragColor.rgb *= 1. - 2. * dist * dist;
         }
         `;
 
@@ -163,6 +163,6 @@ export class ShaderKaleidoscope extends Shader {
             Math.random(),
             Math.random(),
             1);
-        this.gl.uniform1i(this.uAxes, 1 + Math.floor(Math.random() * 6));
+        this.gl.uniform1i(this.uAxes, 3 * (1 + Math.floor(Math.random() * 2)));
     }
 }
