@@ -27,18 +27,21 @@ export class Kaleidoscope {
         this.high2 = new Vector();
         this.low = new Vector();
 
-        this.diameter = new InterpolatorFloat(random, new Bounds(4, 8), new Bounds(160, 520));
+        this.diameter = new InterpolatorFloat(random, new Bounds(4, 8), new Bounds(120, 520));
         this.angle = new InterpolatorFloat(random, new Bounds(14, 18), new Bounds(-1, 1), false, true);
         this.threshold = new InterpolatorFloat(random, new Bounds(5, 6), new Bounds(.2, .5), true, true);
-        this.bandwidth = new InterpolatorFloat(random, new Bounds(4, 5), new Bounds(.15, .35), true, true);
+        this.bandwidth = new InterpolatorFloat(random, new Bounds(4, 5), new Bounds(.15, .3), true, true);
         this.seedRadius = new InterpolatorFloat(random, new Bounds(20, 30), new Bounds(-256, 256), true, false, 4);
         this.seedAngle = new InterpolatorFloat(random, new Bounds(20, 30), new Bounds(0, Math.PI), false, false, .1);
-        this.scale = new InterpolatorFloat(random, new Bounds(4, 7), new Bounds(2, 20), true);
-        this.hueHigh = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
+        this.scale = new InterpolatorFloat(random, new Bounds(4, 7), new Bounds(2, 5), true);
+        this.hueHigh = new InterpolatorFloat(random, new Bounds(5, 20), new Bounds(0, 1), true);
         this.hueLow = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
         this.x = new InterpolatorFloat(random, new Bounds(25, 40), new Bounds(-1, 1), false, true, 10);
         this.y = new InterpolatorFloat(random, new Bounds(25, 40), new Bounds(-1, 1), false, true, 10);
-        this.noiseOffset = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(1, 3.5), true);
+        this.noiseOffset = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(.5, 1.5), true);
+        this.xScale = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(1, 3), true, true);
+        this.yScale = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(1, 3), true, true);
+        this.rotation = new InterpolatorFloat(random, new Bounds(15, 35), new Bounds(0, Math.PI * .5), true, true);
 
         this.resize(canvas.width, canvas.height);
     }
@@ -112,6 +115,9 @@ export class Kaleidoscope {
         this.x.frame(time);
         this.y.frame(time);
         this.noiseOffset.frame(time);
+        this.xScale.frame(time);
+        this.yScale.frame(time);
+        this.rotation.frame(time);
 
         this.seed.x = Math.cos(this.seedAngle.value) * this.seedRadius.value;
         this.seed.y = Math.sin(this.seedAngle.value) * this.seedRadius.value;
@@ -132,7 +138,10 @@ export class Kaleidoscope {
             this.high2,
             this.x.value,
             this.y.value,
-            this.noiseOffset.value
+            this.noiseOffset.value,
+            this.xScale.value,
+            this.yScale.value,
+            this.rotation.value
         );
 
         this.quad.draw();

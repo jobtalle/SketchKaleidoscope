@@ -18,13 +18,15 @@ export class ShaderKaleidoscope extends Shader {
         uniform mediump float scale;
         uniform mediump vec2 shift;
         uniform mediump float noiseOffset;
+        uniform mediump vec2 stretch;
+        uniform mediump vec2 rotation;
         uniform lowp vec3 low;
         uniform lowp vec3 high;
         uniform lowp vec3 highEdge;
         
         #define HEX vec2(1.7320508, 1)
         #define MAX_MIRRORS 12
-        #define NOISE_BOOST .5
+        #define NOISE_BOOST .3
         #define RAMP 200.
         #define EDGE_SHADE .22
         #define AXES 6
@@ -100,16 +102,18 @@ export class ShaderKaleidoscope extends Shader {
             }
                 
             mediump float dist = length(centroid);
-            mediump mat3 rotation = mat3(
+            mediump mat3 tilt = mat3(
                 0.788675134594813, -0.211324865405187, -0.577350269189626,
                 -0.211324865405187, 0.788675134594813, -0.577350269189626,
                 0.577350269189626, 0.577350269189626, 0.577350269189626);
             
+            mediump mat2 rotationMatrix = mat2(rotation.x, rotation.y, -rotation.y, rotation.x);
+            
             mediump float radius = length(screenCoord) / length(size.xy) * 2.;
             mediump float fadeout = 1. - radius * radius * radius * radius;
             mediump float dampen = 1. - 2. * dist * dist;
-            mediump vec2 noiseOffset = centroid * scale + (gl_FragCoord.xy / size) * noiseOffset;
-            lowp float noise = cubicNoise(rotation * (vec3(noiseOffset, 0.) + seed)) - dist * NOISE_BOOST;
+            mediump vec2 noiseOffset = (centroid * scale + (gl_FragCoord.xy / size) * noiseOffset) * stretch * rotationMatrix;
+            lowp float noise = cubicNoise(tilt * (vec3(noiseOffset, 0.) + seed)) - dist * NOISE_BOOST;
             
             if (noise > slice.x && noise < slice.x + slice.y) {
                 mediump float interpolation = min(1., min(noise - slice.x, slice.x + slice.y - noise) * RAMP);
@@ -141,6 +145,8 @@ export class ShaderKaleidoscope extends Shader {
         this.uScale = this.uniformLocation("scale");
         this.uShift = this.uniformLocation("shift");
         this.uNoiseOffset = this.uniformLocation("noiseOffset");
+        this.uStretch = this.uniformLocation("stretch");
+        this.uRotation = this.uniformLocation("rotation");
     }
 
     /**
@@ -157,6 +163,8 @@ export class ShaderKaleidoscope extends Shader {
      * @param {number} x X shift
      * @param {number} y Y shift
      * @param {number} noiseOffset The noise drift with screen coordinates
+     * @param {number} xScale The horizontal scale
+     * @param {number} yScale The vertical scale
      */
     configure(
         diameter,
@@ -170,7 +178,10 @@ export class ShaderKaleidoscope extends Shader {
         highEdge,
         x,
         y,
-        noiseOffset) {
+        noiseOffset,
+        xScale,
+        yScale,
+        rotation) {
         this.gl.uniform1f(this.uDiameter, diameter);
         this.gl.uniformMatrix3fv(this.uTransform, false, [
             Math.cos(angle), Math.sin(angle), 0,
@@ -185,6 +196,8 @@ export class ShaderKaleidoscope extends Shader {
         this.gl.uniform3f(this.uHighEdge, highEdge.x, highEdge.y, highEdge.z);
         this.gl.uniform2f(this.uShift, x, y);
         this.gl.uniform1f(this.uNoiseOffset, noiseOffset);
+        this.gl.uniform2f(this.uStretch, xScale, yScale);
+        this.gl.uniform2f(this.uRotation, Math.cos(rotation), Math.sin(rotation));
     }
 
     /**
