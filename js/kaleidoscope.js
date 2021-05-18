@@ -7,9 +7,19 @@ export class Kaleidoscope {
      * @param {HTMLCanvasElement} canvas The canvas to render to
      */
     constructor(canvas) {
-        this.gl = canvas.getContext("webgl");
+        this.gl = canvas.getContext("webgl", {
+            antialias: false,
+            depth: false,
+            alpha: false,
+            preserveDrawingBuffer: true
+        });
+
         this.quad = new Quad(this.gl);
         this.shader = new ShaderKaleidoscope(this.gl);
+
+        window.addEventListener("keydown", () => {
+            this.resize(canvas.width, canvas.height);
+        });
 
         this.resize(canvas.width, canvas.height);
     }
@@ -19,6 +29,7 @@ export class Kaleidoscope {
      * @param {number} time The frame time
      */
     frame(time) {
+        this.shader.configure();
         this.quad.draw();
     }
 
