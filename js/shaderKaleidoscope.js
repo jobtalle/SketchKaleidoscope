@@ -25,7 +25,7 @@ export class ShaderKaleidoscope extends Shader {
         #define HEX vec2(1.7320508, 1)
         #define MAX_MIRRORS 12
         #define NOISE_BOOST .5
-        #define RAMP 160.
+        #define RAMP 200.
         #define EDGE_SHADE .22
         #define AXES 6
         
@@ -85,7 +85,7 @@ export class ShaderKaleidoscope extends Shader {
             mediump vec4 hC = floor(vec4(p, p - vec2(1, .5)) / HEX.xyxy) + .5;
             mediump vec4 h = vec4(p - hC.xy * HEX, p - (hC.zw + .5) * HEX);
 
-            return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? h.xy : vec2(h.z, -h.w);
+            return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? h.xy : h.zw;
         }
         
         void main() {
