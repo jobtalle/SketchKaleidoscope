@@ -36,10 +36,6 @@ export class Kaleidoscope {
         this.hueHigh = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
         this.hueLow = new InterpolatorFloat(random, new Bounds(10, 20), new Bounds(0, 1), true);
 
-        window.addEventListener("keydown", () => {
-            this.resize(canvas.width, canvas.height);
-        });
-
         this.resize(canvas.width, canvas.height);
     }
 
