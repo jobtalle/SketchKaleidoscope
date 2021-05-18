@@ -16,6 +16,7 @@ export class ShaderKaleidoscope extends Shader {
         uniform mediump float diameter;
         uniform mediump vec2 slice;
         uniform mediump float scale;
+        uniform mediump vec2 shift;
         uniform lowp vec3 low;
         uniform lowp vec3 high;
         uniform lowp vec3 highEdge;
@@ -88,8 +89,8 @@ export class ShaderKaleidoscope extends Shader {
         }
         
         void main() {
-            mediump vec2 screenCoord = gl_FragCoord.xy - size * .5;            
-            mediump vec2 centroid = getCentroid((transform * vec3(screenCoord, 1.)).xy / diameter);
+            mediump vec2 screenCoord = gl_FragCoord.xy - size * .5;
+            mediump vec2 centroid = getCentroid((transform * vec3(screenCoord + shift * size, 1.)).xy / diameter);
             
             for (int axis = 0; axis < AXES; ++axis) {
                 mediump float angle = 3.141593 * (float(axis) / float(AXES));
@@ -138,6 +139,7 @@ export class ShaderKaleidoscope extends Shader {
         this.uHigh = this.uniformLocation("high");
         this.uHighEdge = this.uniformLocation("highEdge");
         this.uScale = this.uniformLocation("scale");
+        this.uShift = this.uniformLocation("shift");
     }
 
     /**
@@ -151,6 +153,8 @@ export class ShaderKaleidoscope extends Shader {
      * @param {Vector} low The dark color
      * @param {Vector} high The light color
      * @param {Vector} highEdge The light color at the edge
+     * @param {number} x X shift
+     * @param {number} y Y shift
      */
     configure(
         diameter,
@@ -161,7 +165,9 @@ export class ShaderKaleidoscope extends Shader {
         scale,
         low,
         high,
-        highEdge) {
+        highEdge,
+        x,
+        y) {
         this.gl.uniform1f(this.uDiameter, diameter);
         this.gl.uniformMatrix3fv(this.uTransform, false, [
             Math.cos(angle), Math.sin(angle), 0,
@@ -174,6 +180,7 @@ export class ShaderKaleidoscope extends Shader {
         this.gl.uniform3f(this.uLow, low.x, low.y, low.z);
         this.gl.uniform3f(this.uHigh, high.x, high.y, high.z);
         this.gl.uniform3f(this.uHighEdge, highEdge.x, highEdge.y, highEdge.z);
+        this.gl.uniform2f(this.uShift, x, y);
     }
 
     /**
