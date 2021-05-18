@@ -27,7 +27,7 @@ export class Kaleidoscope {
         this.high2 = new Vector();
         this.low = new Vector();
 
-        this.diameter = new InterpolatorFloat(random, new Bounds(4, 8), new Bounds(120, 520));
+        this.diameter = new InterpolatorFloat(random, new Bounds(4, 8), new Bounds(80, 420));
         this.angle = new InterpolatorFloat(random, new Bounds(14, 18), new Bounds(-1, 1), false, true);
         this.threshold = new InterpolatorFloat(random, new Bounds(5, 6), new Bounds(.2, .5), true, true);
         this.bandwidth = new InterpolatorFloat(random, new Bounds(4, 5), new Bounds(.15, .3), true, true);
